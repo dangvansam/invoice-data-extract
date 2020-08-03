@@ -1,0 +1,584 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    #canvas{
+        background-image: url("/static/upload/{{ config.image }}");
+        background-size: cover;
+    }
+    </style>
+
+  {% if json_config %}
+    <script>
+      console.log("init with config")
+      //console.log({{ json_config | safe}})
+      var rectangles = {{json_config.boxs | safe}};
+      var rectnames = {{json_config.name_fields | safe}};
+      var value_positions = {{json_config.value_positions | safe}};
+      var num_lines = {{json_config.num_lines | safe}};
+      //showConfig()
+    </script>
+  {% else %}
+    <script>
+      console.log("init with empty")
+      //console.log("{{ json_config}}")
+      var rectangles = [];
+      var rectnames = []
+      var value_positions = []
+      var num_lines = []
+    </script>
+  {% endif %}
+
+<script >
+  console.log("start#########################")
+  console.log(rectangles)
+  console.log(rectnames)
+  console.log(value_positions)
+  console.log(num_lines)
+  console.log("start#########################")
+
+  var img_path = "/static/upload/{{config.image}}"
+  var canvas = null;
+  var ctx = null;
+  var imageObj = null;
+
+  var isDrawing = false;
+  var mouseStartX = 0.0;
+  var mouseStartY = 0.0;
+  var mouseEndX = 0.0;
+  var mouseEndY = 0.0;
+  var scale_img = 0;
+  var len_rectangles = 0
+  var cur_rectangle = rectangles[rectangles.length - 1]
+
+  function Rectangle(x,y,width,height) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+  }
+  function to_dict(arr){
+    var scaled_array = []
+    for (var i=0;i<arr.length;i++){
+      var el = arr[i]
+      var tmp = new Rectangle(el[0], el[1], el[2], el[3])
+      scaled_array.push(tmp)
+      }
+    return scaled_array
+  }
+  // convert to list dict
+  rectangles = to_dict(rectangles)
+
+  function scale_array(arr, scale){
+    var scaled_array = []
+    for (var i=0;i<arr.length;i++){
+      var el = arr[i]
+      var tmp = new Rectangle(parseInt(el.x*scale), parseInt(el.y*scale), parseInt(el.width*scale), parseInt(el.height*scale))
+      scaled_array.push(tmp)
+      }
+    return scaled_array
+  }
+  //console.log("to dict",rectangles)
+  function initCanvas(){
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
+    imageObj = new Image();
+    imageObj.onload = function() { 
+        canvas.width = document.getElementById("draw-canvas").offsetWidth;
+        scale_img = canvas.width/this.width
+        canvas.height = this.height*scale_img
+        console.log("canvassize:",canvas.width, canvas.height)
+        console.log("realsize:",this.width, this.height)
+        console.log("scale_img:",scale_img)
+        //console.log("rectangles:",rectangles)
+        console.log("rectangles:",rectangles)
+        rectangles = scale_array(rectangles, scale_img)
+        console.log("rectangles2:",rectangles)
+    };
+     imageObj.src = img_path;
+  }
+
+  function clearAndShowListRect(flag = false){
+    //document.getElementById("num_box").innerHTML = 'Num rects: ' + rectangles.length
+    clearAllRectname(flag)
+    addManyRectname()
+  }
+
+  function showConfig(){
+    //console.log("in show config",rectangles)
+    if (document.getElementById("rect_a1") != null){
+      clearAllRectname()
+      }
+    addManyRectname()
+    draw()
+  }
+
+  function addRectname(index){
+    var num_cur_rect = index
+    style = "width: 40px; height: 24px; text-align: center; margin: 3px;"
+
+    var rect_a = document.createElement("a")
+    rect_a.setAttribute("id","rect_a"+num_cur_rect)
+
+    var rectname = document.createElement("input")
+    rectname.setAttribute("id","rectname_input"+num_cur_rect)
+    rectname.setAttribute("style","width: 90px; height: 24px;")
+
+    if(rectnames[index-1] == null){
+      rectname.value = "rectname" + num_cur_rect
+    }
+    else{
+      rectname.value = rectnames[index-1]
+    }
+    var rect_delete = document.createElement("button")
+    rect_delete.setAttribute("class","btn btn-sm btn-danger")
+    rect_delete.setAttribute("style","height: 22px")
+    rect_delete.setAttribute("id","rect_delete"+num_cur_rect)
+    rect_delete.innerHTML = "x"
+
+
+    var rect_x = document.createElement("input")
+    rect_x.setAttribute("type","number")
+    rect_x.setAttribute("style",style)
+    rect_x.setAttribute("id","rect_x" + num_cur_rect)
+    rect_x.value = parseInt(rectangles[index-1].x)
+    
+    var rect_y = document.createElement("input")
+    rect_y.setAttribute("type","number")
+    rect_y.setAttribute("style",style)
+    rect_y.setAttribute("id","rect_y"+num_cur_rect)
+    rect_y.value = parseInt(rectangles[index-1].y)
+
+    var rect_w = document.createElement("input")
+    rect_w.setAttribute("type","number")
+    rect_w.setAttribute("style",style)
+    rect_w.setAttribute("id","rect_w"+num_cur_rect)
+    rect_w.value = rectangles[index-1].width
+
+    var rect_h = document.createElement("input")
+    rect_h.setAttribute("type","number")
+    rect_h.setAttribute("style",style)
+    rect_h.setAttribute("id","rect_h"+num_cur_rect)
+    rect_h.value = rectangles[index-1].height
+    
+    var rect_pos = document.createElement("input")
+    rect_pos.setAttribute("style",style)
+    rect_pos.setAttribute("id","value_positon"+num_cur_rect)
+    rect_pos.value = value_positions[index-1]
+    if (value_positions[index-1] == null){
+      rect_pos.value = 'r'
+    }
+    else{
+      rect_pos.value = value_positions[index-1]
+    }
+
+    var rect_line = document.createElement("input")
+    rect_line.setAttribute("type","number")
+    rect_line.setAttribute("style",style)
+    rect_line.setAttribute("id","num_line"+num_cur_rect)
+
+    if (num_lines[index-1]== null){
+      rect_line.value = 1
+    }
+    else{
+      rect_line.value = parseInt(num_lines[index-1])
+    }
+
+    var rect_text = document.createElement("a")
+    rect_text.setAttribute("id","rect_text"+num_cur_rect)
+    
+    var p = document.createElement("p")
+    p.setAttribute("id","rect_p"+num_cur_rect)
+    rect_a.innerHTML = '#'+ num_cur_rect + ': '
+    
+    document.getElementById("list_rect").appendChild(rect_a)
+    document.getElementById("list_rect").appendChild(rectname)
+    document.getElementById("list_rect").appendChild(rect_pos)
+    document.getElementById("list_rect").appendChild(rect_line)
+
+    document.getElementById("list_rect").appendChild(rect_x)
+    document.getElementById("list_rect").appendChild(rect_y)
+    document.getElementById("list_rect").appendChild(rect_w)
+    document.getElementById("list_rect").appendChild(rect_h)
+    document.getElementById("list_rect").appendChild(rect_text)
+    document.getElementById("list_rect").appendChild(rect_delete)
+    document.getElementById("list_rect").appendChild(p)
+
+    $("#rectname_input" + num_cur_rect).on('keyup', function(){
+      //console.log(this.value)
+      rectnames[index-1] = this.value
+      draw()
+    });
+    $("#rect_delete" + num_cur_rect).on('click', function () {
+      rectangles.splice(num_cur_rect-1,1)
+      rectnames.splice(num_cur_rect-1,1)
+      value_positions.splice(num_cur_rect-1,1)
+      num_lines.splice(num_cur_rect-1,1)
+      clearAndShowListRect(true)
+      draw()
+      });
+    $('#rect_x' + num_cur_rect).on('keyup, click', function () {
+      console.log(this.value)
+      console.log('#rect_x' +num_cur_rect)
+      rectangles[num_cur_rect-1].x = parseInt(this.value)
+      draw()
+      });
+    $('#rect_y' + num_cur_rect).on('keyup, click', function () {
+      console.log(this.value)
+      rectangles[num_cur_rect-1].y = parseInt(this.value)
+      draw()
+      });
+    $('#rect_w' + num_cur_rect).on('keyup, click', function () {
+      console.log(this.value)
+      rectangles[num_cur_rect-1].width = parseInt(this.value)
+      draw()
+      });
+    $('#rect_h' + num_cur_rect).on('keyup, click', function () {
+      console.log(this.value)
+      rectangles[num_cur_rect-1].height = parseInt(this.value)
+      draw()
+      });
+    $('#value_positon' + num_cur_rect).on('keyup', function () {
+      console.log(this.value)
+      value_positions[num_cur_rect-1] = this.value
+      //draw()
+      });
+    $('#num_line' + num_cur_rect).on('keyup, click', function () {
+      console.log(this.value)
+      num_lines[num_cur_rect-1] = parseInt(this.value)
+      //draw()
+      });
+  }
+  function addManyRectname(){
+    for (var i=0; i<rectangles.length; ++i){
+      addRectname(i+1)
+    }
+  }
+
+  function addConfigRectname(){
+    for (var m=0; m < rectangles.length; ++m){
+      var rect_a = document.createElement("a")
+      rect_a.setAttribute("id","rect_a" + parseInt(m+1))
+
+      var rectname = document.createElement("input")
+      rectname.setAttribute("style","width: 70px; border: none; height: 19px; text-align: center;")
+      rectname.setAttribute("id","rectname_input"+parseInt(m+1))
+
+      var rect_delete = document.createElement("button")
+      rect_delete.setAttribute("type","button")
+      rect_delete.setAttribute("id","rect_delete"+parseInt(m+1))
+      rect_delete.innerHTML = "X"
+
+      style = "width: 40px; border: none; height: 19px; text-align: center; margin: 6px;"
+      var rect_x = document.createElement("input")
+      rect_x.setAttribute("type","number")
+      rect_x.setAttribute("style",style)
+      rect_x.setAttribute("id","rect_x" + parseInt(m+1))
+      rect_x.value = parseInt(rectangles[m].x)
+      
+      var rect_y = document.createElement("input")
+      rect_y.setAttribute("type","number")
+      rect_y.setAttribute("style",style)
+      rect_y.setAttribute("id","rect_y"+parseInt(m+1))
+      rect_y.value = parseInt(rectangles[m].y)
+
+      var rect_w = document.createElement("input")
+      rect_w.setAttribute("type","number")
+      rect_w.setAttribute("style",style)
+      rect_w.setAttribute("id","rect_w"+parseInt(m+1))
+      rect_w.value = rectangles[m].width
+
+      var rect_h = document.createElement("input")
+      rect_h.setAttribute("type","number")
+      rect_h.setAttribute("style",style)
+      rect_h.setAttribute("id","rect_h"+parseInt(m+1))
+      rect_h.value = rectangles[m].height
+      
+      var rect_pos = document.createElement("input")
+      rect_pos.setAttribute("style",style)
+      rect_pos.setAttribute("id","value_positon"+num_cur_rect)
+      rect_pos.value = value_positions[m]
+
+      var rect_line = document.createElement("input")
+      rect_line.setAttribute("type","number")
+      rect_line.setAttribute("style",style)
+      rect_line.setAttribute("id","num_line"+num_cur_rect)
+      rect_line.value = parseInt(num_lines[m])
+
+      var rect_text = document.createElement("a")
+      rect_text.setAttribute("id","rect_text"+parseInt(m+1))
+
+      var p = document.createElement("p")
+      p.setAttribute("id","rect_p"+parseInt(m+1))
+      rect_a.innerHTML = '#'+ parseInt(m+1) + ': '
+
+      if (rectnames[m] == null){
+          rectname.value = "rectname" + parseInt(m+1)
+          }
+      else{
+          rectname.value = rectnames[m]
+          }
+      document.getElementById("list_rect").appendChild(rect_a)
+      document.getElementById("list_rect").appendChild(rectname)
+      document.getElementById("list_rect").appendChild(rect_delete)
+      document.getElementById("list_rect").appendChild(rect_text)
+      document.getElementById("list_rect").appendChild(rect_pos)
+      document.getElementById("list_rect").appendChild(rect_line)
+      document.getElementById("list_rect").appendChild(rect_x)
+      document.getElementById("list_rect").appendChild(rect_y)
+      document.getElementById("list_rect").appendChild(rect_w)
+      document.getElementById("list_rect").appendChild(rect_h)
+      document.getElementById("list_rect").appendChild(p)
+
+      $("#rect_delete" + parseInt(m+1)).on('click', function () {
+        rectangles.splice(m-1,1)
+        rectnames.splice(m-1,1)
+        value_positions.splice(m-1,1)
+        num_lines.splice(m-1,1)
+        clearAndShowListRect(true)
+        draw()
+        });
+      $('#rect_x' + parseInt(m+1)).on('keyup', function () {
+        console.log(this.value)
+        console.log('#rect_x' +parseInt(m))
+        rectangles[m-1].x = this.value
+        draw()
+        });
+      $('#rect_y' + parseInt(m+1)).on('keyup', function () {
+        console.log(this.value)
+        rectangles[m-1].y = this.value
+        draw()
+        });
+      $('#rect_w' + parseInt(m+1)).on('keyup', function () {
+        console.log(this.value)
+        rectangles[m-1].width = this.value
+        draw()
+        });
+      $('#rect_h' + parseInt(m+1)).on('keyup', function () {
+        console.log(this.value)
+        rectangles[m-1].height = this.value
+        draw()
+      });
+      $('#value_positon' + num_cur_rect).on('keyup', function () {
+      console.log(this.value)
+      value_positions[m-1] = this.value
+      //draw()
+      });
+      $('#num_line' + num_cur_rect).on('keyup', function () {
+      console.log(this.value)
+      num_lines[m-1] = parseInt(this.value)
+      //draw()
+      });
+      }
+    }
+
+  function clearAllRectname(flag = false){
+      var len_tmp = rectangles.length
+      if (flag==true){
+        len_tmp = len_tmp + 1;
+      }
+      for (var n=0; n < len_tmp; ++n){
+      //console.log('n:',n)
+      var rect = document.getElementById("rect_a"+parseInt(n+1))
+      var rectname = document.getElementById("rectname_input"+parseInt(n+1))
+      var rect_delete = document.getElementById("rect_delete"+parseInt(n+1))
+      var rect_vpos = document.getElementById("value_positon"+parseInt(n+1))
+      var rect_line = document.getElementById("num_line"+parseInt(n+1))
+      var rect_x = document.getElementById("rect_x"+parseInt(n+1))
+      var rect_y = document.getElementById("rect_y"+parseInt(n+1))
+      var rect_w = document.getElementById("rect_w"+parseInt(n+1))
+      var rect_h = document.getElementById("rect_h"+parseInt(n+1))
+      var rect_text = document.getElementById("rect_text"+parseInt(n+1))
+      var p = document.getElementById("rect_p"+parseInt(n+1))
+      //console.log(rect)
+      document.getElementById("list_rect").removeChild(rect)
+      document.getElementById("list_rect").removeChild(rectname)
+      document.getElementById("list_rect").removeChild(rect_delete)
+      document.getElementById("list_rect").removeChild(rect_vpos)
+      document.getElementById("list_rect").removeChild(rect_line)
+      document.getElementById("list_rect").removeChild(rect_x)
+      document.getElementById("list_rect").removeChild(rect_y)
+      document.getElementById("list_rect").removeChild(rect_w)
+      document.getElementById("list_rect").removeChild(rect_h)
+      document.getElementById("list_rect").removeChild(rect_text)
+      document.getElementById("list_rect").removeChild(p)
+        // }
+      }
+    }
+  
+  function clearAll(){
+    clearAllRectname();
+    rectangles = []
+    rectnames = []
+    value_positions = []
+    num_lines = []
+    cur_rectangle = null
+    draw()
+  }
+
+  function draw() {
+    console.log("###############draw()#############")
+    ctx.clearRect( 0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.strokeStyle = "#75ff91";
+    ctx.fillStyle = "#eb4034";
+    ctx.lineWidth = 2;
+    ctx.font = "bold 12pt Roboto";
+    ctx.beginPath();
+    for (var i = 0; i < rectangles.length; ++i) {
+      var rectangle = rectangles[i];
+      ctx.rect( rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      ctx.fillText("#" + (i+1) +":"+ rectnames[i], rectangle.x , rectangle.y - 3);
+    }
+    ctx.closePath()
+    ctx.stroke();
+
+    console.log("###############draw()#############")
+  }
+
+  function getMousePosition(e) {
+    if (canvas && e) {
+      var bounds = canvas.getBoundingClientRect();
+      return [
+        parseInt(e.clientX - bounds.left),
+        parseInt(e.clientY - bounds.top)
+      ];
+    } else {
+      return [
+        0.0,
+        0.0
+      ];
+    }
+  }
+
+  window.onmousedown = function(e) {
+    if (!isDrawing) {
+      isDrawing = true;
+      [mouseStartX,mouseStartY] = getMousePosition(e);
+      canvas.style.cursor = "crosshair";
+    }
+  }
+
+  window.onmouseup = function(e) {
+    if (isDrawing) {
+      isDrawing = false;
+    [mouseEndX,mouseEndY] = getMousePosition(e);
+    if (mouseStartX > mouseEndX){
+      var tmp = mouseStartX
+      mouseStartX = mouseEndX
+      mouseEndX = tmp
+    }
+    if (mouseStartY > mouseEndY){
+      var tmp = mouseStartY
+      mouseStartY = mouseEndY
+      mouseEndy = tmp
+    }
+    width_tmp = mouseEndX - mouseStartX
+    height_tmp = mouseEndY - mouseStartY
+    if ((mouseStartX >= 0) && (mouseEndX <= ctx.canvas.width) && (mouseStartY >= 0) && (mouseEndY <= ctx.canvas.height) && height_tmp != 0 && width_tmp != 0){
+      tmp_rect = new Rectangle(mouseStartX,mouseStartY,width_tmp,height_tmp)
+      cur_rectangle = tmp_rect
+
+      rectangles.push(tmp_rect)
+      rectnames.push("rectname"+rectangles.length)
+      value_positions.push("r")
+      num_lines.push(1)
+      //document.getElementById("num_box").innerHTML = 'Num rects: '+ rectangles.length
+      addRectname(rectangles.length);
+      canvas.style.cursor = "default";
+      draw();
+    }
+    }
+  }
+
+  window.onmousemove = function(e) {
+    if (isDrawing) {
+      [mouseEndX,mouseEndY] = getMousePosition(e);
+      draw();
+      ctx.strokeRect(
+        mouseStartX,
+        mouseStartY,
+        mouseEndX - mouseStartX,
+        mouseEndY - mouseStartY);
+    }
+  }
+
+  window.onload = function() {
+    initCanvas()
+  }
+
+function showRectnamed(){
+  for (var l=0; l<rectangles.length; ++l){
+    document.getElementById('rectname'+(l+1)).placeholder = rectnames[l]
+  }
+}
+
+function post_save(){
+  if (rectangles.length == 0){
+      alert('Draw rectangle!')
+  }
+  else{
+      $.ajax({
+      type: "POST",
+      url: '/edit/{{ config.name }}',
+      headers: {"X-CSRFTOKEN": "{{ csrf_token }}"},
+      data: JSON.stringify({"rectnames": rectnames, "rectangles":rectangles, "value_positions":value_positions, "num_lines":num_lines, "scale":scale_img}),
+      contentType: "application/json; charset=utf-8",
+      dataType: "json",
+      success: function(response){
+        if (response.success == true){
+          console.log('post successed!')
+          //window.location.href = '/getlist'
+          window.location.href = '/edit/{{ config.name }}'
+        }
+        else{
+          console.log("post failed")
+        }
+      }});
+  }
+}
+
+</script>
+
+<div class="edit-page">
+    <div class="row">
+        <div class="col-md-7">
+            <div class="draw-canvas" id="draw-canvas">
+                <canvas id="canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-5" style="text-align: right;">
+          <div class="xuli" style="text-align: center;">
+            <div class="form-upload-json">
+                <form method="POST" action="{{ config.name }}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label class="btn btn-secondary" for="config_file" style="margin:0;">
+                        <input id="config_file" type="file" name="file" class="d-none">Chọn json file
+                    </label>
+                    <input class="btn btn-primary" type="submit" value="Tải lên">
+                </form>
+            </div>
+            <button id="show_config" class="btn btn-primary" onclick="javascript:showConfig()">Xem</button>
+            <!-- <h5 id="num_box">Số trường</h5> -->
+            <input id="btn_clear_all" class="btn btn-danger" type="submit" value="Reset" onclick="javascript:clearAll()"></input>
+            
+
+            <div id="list_rect" style="text-align: center; font-family: monospace; font-weight: bolder; margin-top: 10px;"></div>
+
+            <!-- <h5>Save filename</h5>
+            <p><input id ="config_filename_pl" placeholder=""></input></p> -->
+            
+            <div class="input-group mb-3">
+              {% csrf_token %}
+              <input id="config_filename_pl" type="text" class="form-control" placeholder="{{ config.name }}" aria-describedby="basic-addon2">
+              <div class="input-group-append">
+                <button id="btn_saveconfig" class="btn btn-outline-success" type="submit" onclick="javascript:post_save()">Lưu</button>
+              </div>
+            </div>
+
+            <!-- <p><input id="btn_saveconfig" type="submit" value="Lưu mẫu" onclick="javascript:postSaveConfig()"></input></p> -->
+          </div>
+        </div>
+      </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="upload-page">
+    <h4>Tạo mẫu mới</h4>
+    <p></p>
+    <a>Đặt tên và Chọn ảnh mẫu</a>
+    <h5>{{ message}}</h5>
+    <div class="form-upload" style="text-align: center;">
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <!-- <label class="btn btn-primary" for="my-file-selector">
+                <input id="my-file-selector" type="file" class="d-none">Chọn ảnh</label> -->
+            <hr>
+            <button type="submit" class="btn btn-primary mt-3">Tải lên</button>        
+    </div>
+    </form>
+</div>
+{% endblock %}

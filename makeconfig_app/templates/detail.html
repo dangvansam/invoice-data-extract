@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    #canvas{
+        background-image: url("/static/upload/{{ config.image }}");
+        background-size: cover;
+    }
+    </style>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+
+<script >
+  console.log("init with config")
+  //console.log({{ json_config | safe}})
+  var rectangles = {{json_config.boxs | safe}};
+  var rectnames = {{json_config.name_fields | safe}};
+  var value_positions = {{json_config.value_positions | safe}};
+  var num_lines = {{json_config.num_lines | safe}};
+
+  var img_path = "/static/upload/{{config.image}}"
+  var canvas = null;
+  var ctx = null;
+  var imageObj = null;
+
+  var scale_img = 0;
+  var len_rectangles = 0
+  var cur_rectangle = rectangles[rectangles.length - 1]
+
+  function Rectangle(x,y,width,height) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+  }
+  function to_dict(arr){
+    var scaled_array = []
+    for (var i=0;i<arr.length;i++){
+      var el = arr[i]
+      var tmp = new Rectangle(el[0], el[1], el[2], el[3])
+      scaled_array.push(tmp)
+      }
+    return scaled_array
+  }
+  // convert to list dict
+  rectangles = to_dict(rectangles)
+
+  function scale_array(arr, scale){
+    var scaled_array = []
+    for (var i=0;i<arr.length;i++){
+      var el = arr[i]
+      var tmp = new Rectangle(parseInt(el.x*scale), parseInt(el.y*scale), parseInt(el.width*scale), parseInt(el.height*scale))
+      scaled_array.push(tmp)
+      }
+    return scaled_array
+  }
+  //console.log("to dict",rectangles)
+  function initCanvas(){
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
+    imageObj = new Image();
+    imageObj.onload = function() { 
+        canvas.width = document.getElementById("draw-canvas").offsetWidth;
+        scale_img = canvas.width/this.width
+        canvas.height = this.height*scale_img
+        console.log("canvassize:",canvas.width, canvas.height)
+        console.log("realsize:",this.width, this.height)
+        console.log("scale_img:",scale_img)
+        //console.log("rectangles:",rectangles)
+        console.log("rectangles:",rectangles)
+        rectangles = scale_array(rectangles, scale_img)
+        console.log("rectangles2:",rectangles)
+    };
+     imageObj.src = img_path;
+  }
+
+  function clearAndShowListRect(flag = false){
+    //document.getElementById("num_box").innerHTML = 'Num rects: ' + rectangles.length
+    clearAllRectname(flag)
+    addManyRectname()
+  }
+
+  function showConfig(){
+    //console.log("in show config",rectangles)
+    if (document.getElementById("rect_a1") != null){
+      clearAllRectname()
+      }
+    addManyRectname()
+    draw()
+  }
+
+  function addRectname(index){
+    var num_cur_rect = index
+    style = "width: 40px; height: 24px; text-align: center; margin: 3px;"
+
+    var rect_a = document.createElement("a")
+    rect_a.setAttribute("id","rect_a"+num_cur_rect)
+
+    var rectname = document.createElement("input")
+    rectname.setAttribute("id","rectname_input"+num_cur_rect)
+    rectname.setAttribute("style","width: 90px; height: 24px;")
+
+    if(rectnames[index-1] == null){
+      rectname.value = "rectname" + num_cur_rect
+    }
+    else{
+      rectname.value = rectnames[index-1]
+    }
+
+    var rect_x = document.createElement("input")
+    rect_x.setAttribute("type","number")
+    rect_x.setAttribute("style",style)
+    rect_x.setAttribute("id","rect_x" + num_cur_rect)
+    rect_x.value = parseInt(rectangles[index-1].x)
+    
+    var rect_y = document.createElement("input")
+    rect_y.setAttribute("type","number")
+    rect_y.setAttribute("style",style)
+    rect_y.setAttribute("id","rect_y"+num_cur_rect)
+    rect_y.value = parseInt(rectangles[index-1].y)
+
+    var rect_w = document.createElement("input")
+    rect_w.setAttribute("type","number")
+    rect_w.setAttribute("style",style)
+    rect_w.setAttribute("id","rect_w"+num_cur_rect)
+    rect_w.value = rectangles[index-1].width
+
+    var rect_h = document.createElement("input")
+    rect_h.setAttribute("type","number")
+    rect_h.setAttribute("style",style)
+    rect_h.setAttribute("id","rect_h"+num_cur_rect)
+    rect_h.value = rectangles[index-1].height
+    
+    var rect_pos = document.createElement("input")
+    rect_pos.setAttribute("style",style)
+    rect_pos.setAttribute("id","value_positon"+num_cur_rect)
+    rect_pos.value = value_positions[index-1]
+    if (value_positions[index-1] == null){
+      rect_pos.value = 'r'
+    }
+    else{
+      rect_pos.value = value_positions[index-1]
+    }
+
+    var rect_line = document.createElement("input")
+    rect_line.setAttribute("type","number")
+    rect_line.setAttribute("style",style)
+    rect_line.setAttribute("id","num_line"+num_cur_rect)
+
+    if (num_lines[index-1]== null){
+      rect_line.value = 1
+    }
+    else{
+      rect_line.value = parseInt(num_lines[index-1])
+    }
+
+    var rect_text = document.createElement("a")
+    rect_text.setAttribute("id","rect_text"+num_cur_rect)
+    
+    var p = document.createElement("p")
+    p.setAttribute("id","rect_p"+num_cur_rect)
+    rect_a.innerHTML = '#'+ num_cur_rect + ': '
+    
+    document.getElementById("list_rect").appendChild(rect_a)
+    document.getElementById("list_rect").appendChild(rectname)
+    document.getElementById("list_rect").appendChild(rect_pos)
+    document.getElementById("list_rect").appendChild(rect_line)
+
+    document.getElementById("list_rect").appendChild(rect_x)
+    document.getElementById("list_rect").appendChild(rect_y)
+    document.getElementById("list_rect").appendChild(rect_w)
+    document.getElementById("list_rect").appendChild(rect_h)
+    document.getElementById("list_rect").appendChild(rect_text)
+    document.getElementById("list_rect").appendChild(p)
+
+  }
+  function addManyRectname(){
+    for (var i=0; i<rectangles.length; ++i){
+      addRectname(i+1)
+    }
+  }
+
+  function clearAllRectname(flag = false){
+      var len_tmp = rectangles.length
+      if (flag==true){
+        len_tmp = len_tmp + 1;
+      }
+      for (var n=0; n < len_tmp; ++n){
+      //console.log('n:',n)
+      var rect = document.getElementById("rect_a"+parseInt(n+1))
+      var rectname = document.getElementById("rectname_input"+parseInt(n+1))
+      var rect_vpos = document.getElementById("value_positon"+parseInt(n+1))
+      var rect_line = document.getElementById("num_line"+parseInt(n+1))
+      var rect_x = document.getElementById("rect_x"+parseInt(n+1))
+      var rect_y = document.getElementById("rect_y"+parseInt(n+1))
+      var rect_w = document.getElementById("rect_w"+parseInt(n+1))
+      var rect_h = document.getElementById("rect_h"+parseInt(n+1))
+      var rect_text = document.getElementById("rect_text"+parseInt(n+1))
+      var p = document.getElementById("rect_p"+parseInt(n+1))
+      //console.log(rect)
+      document.getElementById("list_rect").removeChild(rect)
+      document.getElementById("list_rect").removeChild(rectname)
+      document.getElementById("list_rect").removeChild(rect_vpos)
+      document.getElementById("list_rect").removeChild(rect_line)
+      document.getElementById("list_rect").removeChild(rect_x)
+      document.getElementById("list_rect").removeChild(rect_y)
+      document.getElementById("list_rect").removeChild(rect_w)
+      document.getElementById("list_rect").removeChild(rect_h)
+      document.getElementById("list_rect").removeChild(rect_text)
+      document.getElementById("list_rect").removeChild(p)
+        // }
+      }
+    }
+  
+
+  function draw() {
+    ctx.clearRect( 0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.strokeStyle = "#75ff91";
+    ctx.fillStyle = "#eb4034";
+    ctx.lineWidth = 2;
+    ctx.font = "bold 12pt Roboto";
+    ctx.beginPath();
+    for (var i = 0; i < rectangles.length; ++i) {
+      var rectangle = rectangles[i];
+      ctx.rect( rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      ctx.fillText("#" + (i+1) +":"+ rectnames[i], rectangle.x , rectangle.y - 3);
+    }
+    ctx.closePath()
+    ctx.stroke();
+  }
+
+
+  window.onload = function() {
+    initCanvas()
+  }
+
+function showRectnamed(){
+  for (var l=0; l<rectangles.length; ++l){
+    document.getElementById('rectname'+(l+1)).placeholder = rectnames[l]
+  }
+}
+
+</script>
+
+<div class="edit-page">
+    <div class="row">
+        <div class="col-md-7">
+            <div class="draw-canvas" id="draw-canvas">
+                <canvas id="canvas"></canvas>
+            </div>
+            <div style="text-align: center; margin: 10px;;">
+              <h5>Mẫu: {{ config.name }}</h5>
+              <a>Thời gian tạo: {{ config.upload_time }}</a>
+            </div>
+        </div>
+
+        <div class="col-md-5" style="text-align: right;">
+          <div class="xuli" style="text-align: center;">
+            <button id="show_config" class="btn btn-primary" onclick="javascript:showConfig()">Xem</button>
+            <button id="show_config" class="btn btn-primary" onclick="javascript:clearAllRectname()">Ẩn</button>
+            <div id="list_rect" style="text-align: center; font-family: monospace; font-weight: bolder; margin-top: 10px;"></div>
+            <!-- <p><input id="btn_saveconfig" type="submit" value="Lưu mẫu" onclick="javascript:postSaveConfig()"></input></p> -->
+          </div>
+        </div>
+      </div>
+</div>
+{% endblock %}

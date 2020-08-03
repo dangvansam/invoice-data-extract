@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<!-- <style>
+    #canvas{
+        background-image: url("/static/upload/{{ filename }}");
+        background-size: cover;
+    }
+    #canvas_ocr{
+        background-image: url("/static/upload/{{ out_filename }}");
+        background-size: cover;
+    }
+</style> -->
+<script>
+
+    var rectangles = {{json_config.boxs | safe}};
+    var rectnames = {{json_config.name_fields | safe}};
+    var value_positions = {{json_config.value_positions | safe}};
+    var num_lines = {{json_config.num_lines | safe}};
+
+    var img_path = "/static/upload/{{filename}}" //để tạo một canvas bằng kích thước ảnh mẫu
+    var canvas = null;
+    var ctx = null;
+    var imageObj = null;
+
+    function Rectangle(x,y,width,height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+    function to_dict(arr){
+        var scaled_array = []
+        for (var i=0;i<arr.length;i++){
+        var el = arr[i]
+        var tmp = new Rectangle(el[0], el[1], el[2], el[3])
+        scaled_array.push(tmp)
+        }
+        return scaled_array
+    }
+// convert to list dict
+rectangles = to_dict(rectangles)
+
+    function initCanvas(){
+        canvas = document.getElementById("canvas");
+        canvas_ocr = document.getElementById("canvas_ocr");
+
+        ctx = canvas.getContext("2d");
+        imageObj = new Image();
+        imageObj.onload = function() { 
+            canvas.width = this.width//document.getElementById("draw-canvas").offsetWidth;
+            //scale_img = canvas.width/this.width
+            canvas.height = this.height//*scale_img
+            canvas_ocr.width = this.width//document.getElementById("draw-canvas").offsetWidth;
+            //scale_img = canvas.width/this.width
+            canvas_ocr.height = this.height//*scale_img
+            console.log("canvassize:",canvas.width, canvas.height)
+            console.log("realsize:",this.width, this.height)
+
+        };
+        imageObj.src = img_path;
+    }
+
+    function showConfig(){
+        draw()
+    }
+
+    function draw() {
+        ctx.clearRect( 0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.strokeStyle = "#75ff91";
+        ctx.fillStyle = "#eb4034";
+        ctx.lineWidth = 2;
+        ctx.font = "bold 12pt Roboto";
+        ctx.beginPath();
+        for (var i = 0; i < rectangles.length; ++i) {
+        var rectangle = rectangles[i];
+        ctx.rect( rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+        ctx.fillText("#" + (i+1) +":"+ rectnames[i], rectangle.x , rectangle.y - 3);
+        }
+        ctx.closePath()
+        ctx.stroke();
+    }
+
+window.onload = function() {
+    //initCanvas()
+    //draw()
+
+}
+
+
+</script>
+<div class="preprocess-image-page"  style="text-align: center;">
+<div>
+    <h4>Kết quả nhận dạng</h4>
+    <a>Mẫu:<span style="color: orangered;">{{ config.name }}</a>
+</div>
+ <div style="display: inline-table;">
+    <a href="/static/upload/{{filename}}"><img src="/static/upload/{{filename}}" alt="Ảnh gốc" width=45%></a>
+    <a href="/static/upload/{{out_filename2}}"><img src="/static/upload/{{out_filename2}}"  alt="Ảnh kết quả" width=45%></a>
+    <div class="col-md mt-3" style="text-align: right;">
+    </div>
+  </div>
+</div>
+{% endblock %}

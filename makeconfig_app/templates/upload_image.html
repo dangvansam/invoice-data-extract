@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="upload-page">
+    <h4>Chọn ảnh giống mẫu đã chọn</h4>
+    <p> </p>
+    <div>
+      <h5>Ảnh demo có sẵn</h5>
+      <button id="demo_image_btn" onclick="click_demo()"><img id="demo_image" src="/static/upload/{{ config_name }}.jpg" height="120px"></button>
+      <!-- <img src="/static/demo/{{ config_name }}_2.jpg"> -->
+    </div>
+    <hr>
+    <div class="form-upload" style="text-align: center;">
+    <h5>Upload ảnh từ máy</h5>
+    <form class="md-form"  action="/select/{{config_name}}" method="POST" enctype="multipart/form-data" accept="image/*">
+        {% csrf_token %}
+        <div class="file-field">
+          <div class="btn btn-light btn-sm ">
+            <span>Chọn</span>
+            <input id="input_image" type="file" name="file">
+          </div>
+        </div>
+        <br>
+        <hr>
+        <input type="checkbox" id="checkbox" name="checkbox">
+        <label for="checkbox">Tự động cân chỉnh ảnh với ảnh</label><br>
+        <button id="upload_btn" type="submit" class="btn btn-primary mt-3">Tải lên</button>    
+      </form>
+    </div>
+    <button id="selectdemo_btn" onclick="select_demo()" class="btn btn-primary mt-3 d-none">Xử lý</button>    
+    <script>
+      checkbox = document.getElementById("checkbox")
+      //filename = filename[filename.length]
+      function click_demo(){
+        $("#upload_btn").addClass('d-none');
+        $("#selectdemo_btn").removeClass('d-none');
+        $("#demo_image_btn").addClass('btn btn-primary')
+      }
+
+      function select_demo(){
+        if (checkbox.checked){
+          console.log("{{config_name}}/{{config_name}}.jpg/1")
+          window.location.href = "{{config_name}}/{{config_name}}.jpg/1"
+        }
+        else{
+          console.log("{{config_name}}/{{config_name}}.jpg/0")
+          window.location.href = "{{config_name}}/{{config_name}}.jpg/0"
+        }
+      }
+      </script>
+{% endblock %}
