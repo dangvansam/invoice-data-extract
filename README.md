@@ -1,3 +1,4 @@
 # invoice-data-extract
 Trích xuất dữ liệu từ ảnh (Hóa đơn) sử dụng deeplearning  
-Sử dụng source: https://github.com/clovaai/CRAFT-pytorch cho detect text trên ảnh
+Sử dụng source: https://github.com/clovaai/CRAFT-pytorch cho detect text trên ảnh  
+![alt](demo nhan dang hoa don.png)
