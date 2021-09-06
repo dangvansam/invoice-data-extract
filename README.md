@@ -1,5 +1,5 @@
 # invoice-data-extract
-Trích xuất dữ liệu từ ảnh (Hóa đơn)
+Trích xuất dữ liệu từ ảnh (Hóa đơn)  
 Finetune pretrained model từ: https://github.com/clovaai/CRAFT-pytorch cho text detection và TesseractOCR
 
 ![alt](https://github.com/dangvansam98/invoice-data-extract/blob/master/demo%20nhan%20dang%20hoa%20don.png)
